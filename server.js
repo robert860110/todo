@@ -2,11 +2,19 @@ var express = require('express');
 var bodyParse = require('body-parser');
 var app = express();
 var _ = require('underscore');
+var moment = require('moment');
+
 var PORT = process.env.PORT || 3000;
 
-var todos = [];
-
-var todoNextId = 1;
+// Connect to DB
+var connection = require('./db.js');
+connection.connect(function(err) {
+    if (err) {
+        console.log('Error connecting to DB...');
+        return;
+    }
+    console.log('Connection to DB is established');
+});
 
 app.use(bodyParse.json());
 
@@ -17,24 +25,44 @@ app.get('/', function(req, res) {
 
 // GET /todos
 app.get('/todos', function(req, res) {
-    res.json(todos);
+
+    var filteredTodos;
+
+    var query = connection.query('select * from todos', function(err, result) {
+        if (err) {
+            res.status(404).send();
+            return;
+        }
+        res.json(result);
+    });
 })
 
+
+// POST /todos
 app.post('/todos', function(req, res) {
-    var body = _.pick(req.body, 'description', 'complete');
+    var body = _.pick(req.body, 'description', 'completed');
 
 
-    if (!_.isBoolean(body.complete) || _.isString(body.description) || body.description.trim().length === 0)
+    if (!_.isBoolean(body.completed) || _.isString(body.description) || body.description.trim().length === 0)
 
     {
-        body.id = todoNextId;
         body.description = body.description.trim();
+        body.completed = false;
+        body.dateCreated = moment(new Date()).format("YYYY-MM-DD HH:mm:ss");
+        // body.dateCreated = moment(new Date()).format("YYYY-MM-DD HH:mm:ss");
 
-        todos.push(body);
-        todoNextId++;
+        console.log(body);
 
-        res.json(todos);
-    } else res.status(404).sned();
+        var query = connection.query('insert into todos set?', body, function(err, result) {
+            if (err) {
+                res.send(err);
+                return;
+            }
+            res.json(result);
+        });
+
+
+    } else res.status(404).send();
 })
 
 // GET /todos/:id
@@ -53,7 +81,7 @@ app.get('/todos/:id', function(req, res) {
     if (matchedTodo) {
         res.json(matchedTodo);
     } else {
-        res.status(404).send();
+        res.send('no record is found');
     }
 
 })
