@@ -1,5 +1,5 @@
 {
-  "name": "todo",
+  "name": "todo-api",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,11 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "body-parser": "^1.15.1",
-    "dateformat": "^1.0.12",
-    "express": "^4.13.4",
-    "moment": "^2.13.0",
-    "mysql": "^2.10.2",
+    "body-parser": "^1.13.3",
+    "express": "^4.13.3",
+    "sequelize": "^3.5.1",
+    "sqlite3": "^3.0.10",
     "underscore": "^1.8.3"
   }
 }
