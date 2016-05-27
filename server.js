@@ -4,7 +4,6 @@ var _ = require('underscore');
 var db = require('./db.js');
 var bcrypt = require('bcrypt');
 var middleware = require('./middleware.js')(db);
-
 var app = express();
 var PORT = process.env.PORT || 3000;
 
@@ -18,7 +17,9 @@ app.get('/', function(req, res) {
 // GET /todos?completed=false&q=work
 app.get('/todos', middleware.requireAuthentication, function(req, res) {
     var query = req.query;
-    var where = {};
+    var where = {
+        userId: req.user.get('id')
+    };
 
     if (query.hasOwnProperty('completed') && query.completed === 'true') {
         where.completed = true;
@@ -31,8 +32,6 @@ app.get('/todos', middleware.requireAuthentication, function(req, res) {
             $like: '%' + query.q + '%'
         };
     }
-
-    where.userId = req.user.get('id');
 
     db.todo.findAll({
         where: where
@@ -47,10 +46,10 @@ app.get('/todos', middleware.requireAuthentication, function(req, res) {
 app.get('/todos/:id', middleware.requireAuthentication, function(req, res) {
     var todoId = parseInt(req.params.id, 10);
 
-var where = {
-    id : todoId,
-    userId : req.user.get('id')
-};
+    var where = {
+        id: todoId,
+        userId: req.user.get('id')
+    };
 
     db.todo.findOne({
         where: where
@@ -84,7 +83,8 @@ app.delete('/todos/:id', middleware.requireAuthentication, function(req, res) {
 
     db.todo.destroy({
         where: {
-            id: todoId
+            id: todoId,
+            userId: req.user.get('id')
         }
     }).then(function(rowsDeleted) {
         if (rowsDeleted === 0) {
@@ -105,6 +105,11 @@ app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
     var body = _.pick(req.body, 'description', 'completed');
     var attributes = {};
 
+    var where = {
+        id: todoId,
+        userId: req.user.get('id')
+    };
+
     if (body.hasOwnProperty('completed')) {
         attributes.completed = body.completed;
     }
@@ -113,7 +118,7 @@ app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
         attributes.description = body.description;
     }
 
-    db.todo.findById(todoId).then(function(todo) {
+    db.todo.findOne({ where: where }).then(function(todo) {
         if (todo) {
             todo.update(attributes).then(function(todo) {
                 res.json(todo.toJSON());
@@ -128,6 +133,7 @@ app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
     });
 });
 
+// Add a new user
 app.post('/users', function(req, res) {
     var body = _.pick(req.body, 'email', 'password');
 
@@ -138,7 +144,7 @@ app.post('/users', function(req, res) {
     });
 });
 
-
+// User login
 app.post('/users/login', function(req, res) {
     var body = _.pick(req.body, 'email', 'password');
 
